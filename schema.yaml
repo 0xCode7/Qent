@@ -1,0 +1,98 @@
+openapi: 3.0.3
+info:
+  title: Qent API Schema
+  version: 1.0.0
+  description: Car Store Project
+paths:
+  /api/register/:
+    post:
+      operationId: api_register_create
+      description: POST register → Create User
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Register'
+          description: ''
+  /api/utils/countries/:
+    get:
+      operationId: api_utils_countries_retrieve
+      description: GET utils/countries/ → Returns list of countries
+      tags:
+      - api
+      security:
+      - jwtAuth: []
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Country'
+          description: ''
+components:
+  schemas:
+    Country:
+      type: object
+      properties:
+        id:
+          type: integer
+        country:
+          type: string
+        abbreviation:
+          type: string
+      required:
+      - abbreviation
+      - country
+      - id
+    Register:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Required. 150 characters or fewer. Letters, digits and @/./+/-/_
+            only.
+          pattern: ^[\w.@+-]+$
+          maxLength: 150
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+        country:
+          type: string
+      required:
+      - country
+      - email
+      - password
+      - username
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
