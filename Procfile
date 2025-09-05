@@ -1,2 +1,1 @@
-web: gunicorn qent.wsgi --log-file -
-web: python manage.py migrate && gunicorn qent.wsgi
+web: gunicorn qent.wsgi --bind 0.0.0.0:$PORT --workers 4
