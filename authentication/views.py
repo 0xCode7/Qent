@@ -4,7 +4,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .serializers import RegisterSerializer, CountrySerializer
+from .serializers import RegisterSerializer, CountrySerializer, PhoneVerificationSerializer, \
+    PhoneVerificationRequestSerializer
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from rest_framework import status, generics
@@ -65,3 +66,35 @@ class LogoutView(APIView):
             return Response({"message": "Logged out successfully"}, status=status.HTTP_205_RESET_CONTENT)
         except TokenError:
             return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PhoneVerifyRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PhoneVerificationRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        country = serializer.validated_data['country']
+        phone = serializer.validated_data['phone']
+
+
+        return Response(
+            {"message": "Verification Code Sent", "phone": phone},
+            status=status.HTTP_200_OK
+        )
+
+
+class PhoneVerifyConfirmView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PhoneVerificationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        user.phone = serializer.validated_data['phone']
+        user.phone_verified = True
+        user.save()
+
+        return Response({"message": "Phone verified successfully"}, status=status.HTTP_200_OK)

@@ -1,7 +1,7 @@
 from .models import User
 from rest_framework import serializers
-import os, json
 from django.conf import settings
+import os, json
 
 COUNTRIES_FILE = os.path.join(settings.BASE_DIR, 'authentication/data/countries.json')
 with open(COUNTRIES_FILE, 'r', encoding='utf-8') as f:
@@ -50,3 +50,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
+class PhoneVerificationRequestSerializer(serializers.Serializer):
+    country = serializers.CharField()
+    phone = serializers.CharField()
+
+
+class PhoneVerificationSerializer(serializers.Serializer):
+    phone = serializers.CharField()
+    code = serializers.CharField()
+
+    def validate_code(self, value):
+        if value != os.getenv("VERIFICATION_CODE"):
+            raise serializers.ValidationError("Invalid verification code")
+        return value

@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import os
 from datetime import timedelta
 
+# Load .env
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -11,13 +12,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv("SECRET_KEY", "insecure-default")
 DEBUG = os.getenv("DEBUG", "False") == "True"
 DEV = os.getenv("DEV", "False") == "True"
+
 ALLOWED_HOSTS = [
     os.getenv("DOMAIN", "localhost"),
     "127.0.0.1",
     "localhost"
 ]
 
+# ----------------------
 # Apps
+# ----------------------
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -26,22 +30,29 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    # REST & JWT
     "rest_framework",
     "rest_framework.authtoken",
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "corsheaders",
 
+    # Allauth
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
 
+    # dj-rest-auth
     "dj_rest_auth",
     "dj_rest_auth.registration",
 
+    # Custom apps
     "authentication",
 ]
 
+# ----------------------
+# Middleware
+# ----------------------
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -74,7 +85,9 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "qent.wsgi.application"
 
+# ----------------------
 # Database
+# ----------------------
 if DEV:
     DATABASES = {
         "default": {
@@ -94,7 +107,9 @@ else:
         }
     }
 
-# REST Framework
+# ----------------------
+# REST Framework & JWT
+# ----------------------
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework_simplejwt.authentication.JWTAuthentication",
@@ -110,7 +125,6 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
 }
 
-# JWT Settings
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=int(os.getenv("ACCESS_TOKEN_LIFETIME", 30))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv("REFRESH_TOKEN_LIFETIME", 30))),
@@ -118,7 +132,9 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
-# Auth
+# ----------------------
+# Authentication
+# ----------------------
 AUTH_USER_MODEL = "authentication.User"
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
@@ -126,30 +142,36 @@ AUTHENTICATION_BACKENDS = (
 )
 
 SITE_ID = 1
-ACCOUNT_EMAIL_REQUIRED = True
+
+# Use new recommended signup fields instead of deprecated ACCOUNT_EMAIL_REQUIRED
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
 ACCOUNT_EMAIL_VERIFICATION = "optional"
 REST_USE_JWT = True
 
-# Email
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND")
-EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+# ----------------------
+# Email (SMTP)
+# ----------------------
+EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.environ.get('EMAIL_HOST')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
 
-# Password Reset
 PASSWORD_RESET_CONFIRM_URL = "password/reset/confirm/{uid}/{token}/"
 
-# Static
+# ----------------------
+# Static files
+# ----------------------
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
-# Let WhiteNoise serve compressed static files
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
-# CORS
+# ----------------------
+# CORS & CSRF
+# ----------------------
 CORS_ALLOWED_ORIGINS = [
     f"https://{os.getenv('DOMAIN')}",
     "http://localhost:3000",
@@ -158,3 +180,8 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [f"https://{os.getenv('DOMAIN')}"]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# ----------------------
+# Verification code (phone)
+# ----------------------
+VERIFICATION_CODE = os.getenv("VERIFICATION_CODE", "1111")
