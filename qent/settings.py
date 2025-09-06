@@ -10,6 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY
 SECRET_KEY = os.getenv("SECRET_KEY", "insecure-default")
 DEBUG = os.getenv("DEBUG", "False") == "True"
+DEV = os.getenv("DEV", "False") == "True"
 ALLOWED_HOSTS = [
     os.getenv("DOMAIN", "localhost"),
     "127.0.0.1",
@@ -74,7 +75,7 @@ TEMPLATES = [
 WSGI_APPLICATION = "qent.wsgi.application"
 
 # Database
-if DEBUG:
+if DEV:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
