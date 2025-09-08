@@ -82,7 +82,6 @@ class PhoneVerifyRequestView(APIView):
         serializer = PhoneVerificationRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        country = serializer.validated_data['country']
         phone = serializer.validated_data['phone']
 
         return Response(
