@@ -12,8 +12,8 @@ urlpatterns = [
     path("phone/verify/", views.PhoneVerifyRequestView.as_view(), name="phone_verify_request"),
     path("phone/verify/confirm/", PhoneVerifyConfirmView.as_view(), name="phone_verify_confirm"),
 
-    path('', include('dj_rest_auth.urls')),  # login, logout, password reset/change
-
-    path('', include('django.contrib.auth.urls')),
+    # path('', include('dj_rest_auth.urls')), # password reset/change
+    #
+    # path('', include('django.contrib.auth.urls')),
 
 ]

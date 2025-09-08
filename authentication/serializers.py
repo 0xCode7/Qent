@@ -1,6 +1,11 @@
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import User
 from rest_framework import serializers
 from django.conf import settings
+
 import os, json
 
 COUNTRIES_FILE = os.path.join(settings.BASE_DIR, 'authentication/data/countries.json')
@@ -14,20 +19,23 @@ class CountrySerializer(serializers.Serializer):
     country = serializers.CharField()
     abbreviation = serializers.CharField()
 
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name']
-        read_only_fields = ['id', 'username', 'email']
+        fields = ['id', 'full_name', 'email']
+        read_only_fields = ['id', 'email']
+
 
 class RegisterSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField(required=True)
     country = serializers.CharField()
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 'country']
+        fields = ['full_name', 'email', 'password', 'country']
 
     def validate_country(self, value):
         if value not in COUNTRY_CODES:
@@ -51,8 +59,28 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField()
+
+    def validate(self, data):
+        username = User.objects.get(email=data['email'])
+        user = authenticate(username=username, password=data["password"])
+        # 👆 here we pass email as username
+        if not user:
+            raise serializers.ValidationError("Invalid email or password")
+
+        refresh = RefreshToken.for_user(user)
+        return {
+            "user": UserSerializer(user).data,
+            "tokens": {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+            }
+        }
+
 class PhoneVerificationRequestSerializer(serializers.Serializer):
-    country = serializers.CharField()
     phone = serializers.CharField()
 
 
