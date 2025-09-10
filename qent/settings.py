@@ -115,7 +115,11 @@ REST_FRAMEWORK = {
         "rest_framework_simplejwt.authentication.JWTAuthentication",
         "rest_framework.authentication.SessionAuthentication",
     ],
+    'DEFAULT_PAGINATION_CLASS': 'qent.pagination.CustomPagination',
+    'PAGE_SIZE': 13,
+    
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "EXCEPTION_HANDLER": "qent.exceptions.custom_exception_handler"
 }
 
 SPECTACULAR_SETTINGS = {

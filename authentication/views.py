@@ -1,4 +1,6 @@
 import os, json
+
+from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.exceptions import TokenError
 from .serializers import RegisterSerializer, CountrySerializer, PhoneVerificationSerializer, \
@@ -18,16 +20,15 @@ with open(COUNTRIES_FILE, 'r', encoding='utf-8') as f:
     COUNTRIES = json.load(f)
 
 
-class CountriesView(APIView):
+class CountriesView(ListAPIView):
     """
     GET utils/countries/ → Returns list of countries
     """
 
     serializer_class = CountrySerializer
 
-    def get(self, request, *args, **kwargs):
-        serializer = self.serializer_class(COUNTRIES, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+    def get_queryset(self):
+        return COUNTRIES
 
 
 # Create your views here.
@@ -59,7 +60,13 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        return Response(
+            {
+                "message": 'Logged in successfully',
+                **serializer.validated_data,
+            },
+            status=status.HTTP_200_OK
+        )
 
 
 class LogoutView(APIView):
