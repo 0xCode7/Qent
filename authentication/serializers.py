@@ -59,18 +59,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
-
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField()
 
     def validate(self, data):
-        username = User.objects.get(email=data['email'])
-        user = authenticate(username=username, password=data["password"])
-        # 👆 here we pass email as username
-        if not user:
-            raise serializers.ValidationError("Invalid email or password")
+        try:
+            user_obj = User.objects.get(email=data['email'])
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"login_error": ["User not found"]})
 
+        user = authenticate(username=user_obj.username, password=data["password"])
+        if not user:
+            raise serializers.ValidationError({"login_error": ["Wrong password"]})
         refresh = RefreshToken.for_user(user)
         return {
             "user": UserSerializer(user).data,
@@ -79,6 +80,7 @@ class LoginSerializer(serializers.Serializer):
                 "refresh": str(refresh),
             }
         }
+
 
 class PhoneVerificationRequestSerializer(serializers.Serializer):
     phone = serializers.CharField()
