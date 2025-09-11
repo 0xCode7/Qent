@@ -134,8 +134,7 @@ class ConfirmEmailPasswordResetView(APIView):
         if user.reset_code != code:
             return Response({"message": "Invalid code"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # clear reset code after successful confirmation
-        user.reset_code = None
+
         user.save()
 
         return Response(
@@ -161,6 +160,7 @@ class ResetPasswordView(APIView):
             )
 
         user.set_password(password)
+        # clear reset code after successful confirmation
         user.reset_code = None
         user.save()
 

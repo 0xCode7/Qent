@@ -110,12 +110,20 @@ class ConfirmCodeSerializer(serializers.Serializer):
 
 class ResetPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
+    code = serializers.CharField()
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
 
     def validate(self, data):
         if data["password"] != data["confirm_password"]:
             raise serializers.ValidationError({"message": "Passwords do not match"})
+
+        try:
+            user = User.objects.get(email=data['email'])
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"message": "User with this email does not exist"})
+        if user.reset_code != data["code"]:
+            raise serializers.ValidationError({"message": "Invalid reset code"})
         return data
 
 
