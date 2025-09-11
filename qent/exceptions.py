@@ -15,7 +15,7 @@ def custom_exception_handler(exc, context):
 
                 field_messages = []
                 for msg in msgs:
-                    if msg == "This field is required.":
+                    if msg.startswith("This field"):
                         field_name = field.replace("_", " ").capitalize()
                         field_messages.append(f"{field_name} is required")
                     else:

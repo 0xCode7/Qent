@@ -11,7 +11,7 @@ import os, json
 COUNTRIES_FILE = os.path.join(settings.BASE_DIR, 'authentication/data/countries.json')
 with open(COUNTRIES_FILE, 'r', encoding='utf-8') as f:
     COUNTRIES = json.load(f)
-COUNTRY_CODES = [c["abbreviation"] for c in COUNTRIES]
+COUNTRY_CODES = [c["id"] for c in COUNTRIES]
 
 
 class CountrySerializer(serializers.Serializer):
@@ -21,35 +21,45 @@ class CountrySerializer(serializers.Serializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    country = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'full_name', 'email']
+        fields = ['id', 'full_name', 'email', 'phone', 'phone_is_verified', 'country']
         read_only_fields = ['id', 'email']
+
+    def get_country(self, obj):
+        """
+        Map stored country code -> full country object using CountrySerializer
+        """
+        country_obj = next((c for c in COUNTRIES if c["abbreviation"] == obj.country), None)
+        if country_obj:
+            return CountrySerializer(country_obj).data
+        return None
 
 
 class RegisterSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField(required=True)
-    country = serializers.CharField()
+    phone = serializers.CharField(required=True)
+    country = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = User
-        fields = ['full_name', 'email', 'password', 'country']
+        fields = ['full_name', 'email', 'phone', 'password', 'country']
 
     def validate_country(self, value):
-        if value not in COUNTRY_CODES:
-            raise serializers.ValidationError("Invalid country code")
-        return value
+        """Ensure the country ID exists and return abbreviation."""
+        country_obj = next((c for c in COUNTRIES if c["id"] == value), None)
+        if not country_obj:
+            raise serializers.ValidationError("Invalid country ID")
+        # store abbreviation in DB (e.g. "US")
+        return country_obj["abbreviation"]
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already exists")
-        return value
-
-    def validate_username(self, value):
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError("Username already exists")
         return value
 
     def create(self, validated_data):
@@ -58,6 +68,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
+
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -80,6 +91,32 @@ class LoginSerializer(serializers.Serializer):
                 "refresh": str(refresh),
             }
         }
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.CharField(required=True)
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("User with this email does not exists.")
+
+        return value
+
+
+class ConfirmCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField()
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        if data["password"] != data["confirm_password"]:
+            raise serializers.ValidationError({"message": "Passwords do not match"})
+        return data
 
 
 class PhoneVerificationRequestSerializer(serializers.Serializer):

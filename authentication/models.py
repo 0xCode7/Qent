@@ -7,7 +7,8 @@ class User(AbstractUser):
     username = models.CharField(max_length=150, unique=True, blank=True, null=True)
     full_name = models.CharField(max_length=255, null=False, blank=False)
     country = models.CharField(max_length=3, default='PS')
-    phone_verified = models.BooleanField(default=False)
+    phone = models.CharField(max_length=20, null=False, blank=False, default='')
+    phone_is_verified = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.username:
