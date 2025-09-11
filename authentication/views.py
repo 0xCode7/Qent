@@ -13,7 +13,6 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import get_user_model
 from django.conf import settings
-from django.core.mail import send_mail
 
 User = get_user_model()
 
@@ -98,13 +97,6 @@ class ForgotPasswordView(APIView):
 
         RESET_CODES[email] = code
 
-        # Send email
-        send_mail(
-            "Password Reset Code",
-            f"Your reset code is: {code}",
-            "no-reply@qent.com",
-            [email],
-        )
 
         return Response(
             {"code": code, "message": "Code sent to your email successfully"},
