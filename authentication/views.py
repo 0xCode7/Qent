@@ -84,22 +84,33 @@ class LogoutView(APIView):
             return Response({"error": "Invalid or expired token"}, status=status.HTTP_400_BAD_REQUEST)
 
 
-RESET_CODES = {}
-
-
 class ForgotPasswordView(APIView):
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         email = serializer.validated_data["email"]
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"message": "User with this email does not exist"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # generate random 4-digit code
         code = str(random.randint(1000, 9999))
 
-        RESET_CODES[email] = code
-
+        # save code in model
+        user.reset_code = code
+        user.save()
 
         return Response(
-            {"code": code, "message": "Code sent to your email successfully"},
+            {
+                "code": code,
+                "message": "Code sent to your email successfully"
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -112,12 +123,24 @@ class ConfirmEmailPasswordResetView(APIView):
         email = serializer.validated_data["email"]
         code = serializer.validated_data["code"]
 
-        if RESET_CODES.get(email) != code:
-            return Response({"message": "Invalid code"}, status=400)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"message": "User with this email does not exist"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if user.reset_code != code:
+            return Response({"message": "Invalid code"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # clear reset code after successful confirmation
+        user.reset_code = None
+        user.save()
 
         return Response(
             {"message": "You confirmed your email, now you can change your password"},
-            status=200,
+            status=status.HTTP_200_OK,
         )
 
 
@@ -129,13 +152,19 @@ class ResetPasswordView(APIView):
         email = serializer.validated_data["email"]
         password = serializer.validated_data["password"]
 
-        user = User.objects.get(email=email)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"message": "User with this email does not exist"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         user.set_password(password)
+        user.reset_code = None
         user.save()
 
-        RESET_CODES.pop(email, None)  # clear code
-
-        return Response({"message": "Password reset successfully"}, status=200)
+        return Response({"message": "Password reset successfully"}, status=status.HTTP_200_OK)
 
 
 class PhoneVerifyRequestView(APIView):
