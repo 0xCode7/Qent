@@ -1,6 +1,5 @@
 from django.contrib.auth import authenticate
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 
 from .models import User
 from rest_framework import serializers
@@ -92,25 +91,18 @@ class LoginSerializer(serializers.Serializer):
             }
         }
 
-
 class ForgotPasswordSerializer(serializers.Serializer):
-    email = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
 
     def validate_email(self, value):
         if not User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("User with this email does not exists.")
-
+            raise serializers.ValidationError("User with this email does not exist.")
         return value
 
 
-class ConfirmCodeSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    code = serializers.CharField()
-
-
 class ResetPasswordSerializer(serializers.Serializer):
-    email = serializers.EmailField()
     code = serializers.CharField()
+    reset_token = serializers.CharField()
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
 
@@ -118,14 +110,22 @@ class ResetPasswordSerializer(serializers.Serializer):
         if data["password"] != data["confirm_password"]:
             raise serializers.ValidationError({"message": "Passwords do not match"})
 
+        token = AccessToken(data['reset_token'])
+
+
         try:
-            user = User.objects.get(email=data['email'])
+            user = User.objects.get(id=token['user_id'])
         except User.DoesNotExist:
-            raise serializers.ValidationError({"message": "User with this email does not exist"})
+            raise serializers.ValidationError({"message": "User does not exist"})
+
         if user.reset_code != data["code"]:
             raise serializers.ValidationError({"message": "Invalid reset code"})
-        return data
 
+        # verify token
+        if user.reset_token != str(token):
+            raise serializers.ValidationError({"message": "Invalid reset token"})
+
+        return data
 
 class PhoneVerificationRequestSerializer(serializers.Serializer):
     phone = serializers.CharField()

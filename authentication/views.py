@@ -1,18 +1,20 @@
 import os, json
 import random
+from datetime import timedelta
 
 from .serializers import RegisterSerializer, CountrySerializer, PhoneVerificationSerializer, \
     PhoneVerificationRequestSerializer, UserSerializer, LoginSerializer, ForgotPasswordSerializer, \
-    ResetPasswordSerializer, ConfirmCodeSerializer
+    ResetPasswordSerializer
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 User = get_user_model()
 
@@ -88,58 +90,27 @@ class ForgotPasswordView(APIView):
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
         email = serializer.validated_data["email"]
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response(
-                {"message": "User with this email does not exist"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        user = User.objects.get(email=email)
 
         # generate random 4-digit code
         code = str(random.randint(1000, 9999))
-
-        # save code in model
         user.reset_code = code
-        user.save()
 
+        # create a short-lived access token for password reset
+        token = RefreshToken.for_user(user).access_token
+        token.set_exp(lifetime=timedelta(minutes=10))
+        user.reset_token = str(token)
+
+        user.save()
         return Response(
             {
-                "code": code,
-                "message": "Code sent to your email successfully"
+                "message": "Code sent to your email successfully",
+                "code": code,  # for testing, in production you send via email
+                "reset_token": str(token)
             },
-            status=status.HTTP_200_OK,
-        )
-
-
-class ConfirmEmailPasswordResetView(APIView):
-    def post(self, request):
-        serializer = ConfirmCodeSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        email = serializer.validated_data["email"]
-        code = serializer.validated_data["code"]
-
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response(
-                {"message": "User with this email does not exist"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if user.reset_code != code:
-            return Response({"message": "Invalid code"}, status=status.HTTP_400_BAD_REQUEST)
-
-
-        user.save()
-
-        return Response(
-            {"message": "You confirmed your email, now you can change your password"},
-            status=status.HTTP_200_OK,
+            status=status.HTTP_200_OK
         )
 
 
@@ -147,21 +118,14 @@ class ResetPasswordView(APIView):
     def post(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        token = AccessToken(data['reset_token'])
 
-        email = serializer.validated_data["email"]
-        password = serializer.validated_data["password"]
+        user = User.objects.get(id=token['user_id'])
 
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            return Response(
-                {"message": "User with this email does not exist"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        user.set_password(password)
-        # clear reset code after successful confirmation
-        user.reset_code = None
+        user.set_password(data["password"])
+        user.reset_code = None  # clear code
+        user.reset_token = None  # clear token
         user.save()
 
         return Response({"message": "Password reset successfully"}, status=status.HTTP_200_OK)

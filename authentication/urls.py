@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
 from . import views
-from .views import PhoneVerifyConfirmView, ForgotPasswordView, ConfirmEmailPasswordResetView, ResetPasswordView
+from .views import PhoneVerifyConfirmView, ForgotPasswordView, ResetPasswordView
 
 urlpatterns = [
     path('utils/countries/', views.CountriesView.as_view(), name='countries'),
@@ -13,8 +13,6 @@ urlpatterns = [
     path("phone/verify/confirm/", PhoneVerifyConfirmView.as_view(), name="phone_verify_confirm"),
 
     path("forgot_password/", ForgotPasswordView.as_view(), name="forgot_password"),
-    path("confirm_email_in_password_reset/", ConfirmEmailPasswordResetView.as_view(),
-         name="confirm_email_password_reset"),
     path("reset_password/", ResetPasswordView.as_view(), name="reset_password"),
 
 ]
