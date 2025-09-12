@@ -134,6 +134,7 @@ class PhoneVerificationRequestSerializer(serializers.Serializer):
 class PhoneVerificationSerializer(serializers.Serializer):
     phone = serializers.CharField()
     code = serializers.CharField()
+    verify_token = serializers.CharField()
 
     def validate_code(self, value):
         if value != os.getenv("VERIFICATION_CODE"):

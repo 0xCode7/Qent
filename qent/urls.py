@@ -2,12 +2,14 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-
+from authentication.views import CountriesView
 
 router = routers.SimpleRouter()
 
 urlpatterns = [
     path('api/auth/', include('authentication.urls')),
+
+    path('api/puplic/countries/', CountriesView.as_view(), name='countries'),
     path('admin/', admin.site.urls),
 
     path('Downlaod', SpectacularAPIView.as_view(), name='schema'),

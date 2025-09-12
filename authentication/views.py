@@ -2,6 +2,8 @@ import os, json
 import random
 from datetime import timedelta
 
+from rest_framework.exceptions import ValidationError
+
 from .serializers import RegisterSerializer, CountrySerializer, PhoneVerificationSerializer, \
     PhoneVerificationRequestSerializer, UserSerializer, LoginSerializer, ForgotPasswordSerializer, \
     ResetPasswordSerializer
@@ -140,8 +142,15 @@ class PhoneVerifyRequestView(APIView):
 
         phone = serializer.validated_data['phone']
 
+        user = request.user
+
+        # create a short-lived access token for password reset
+        token = RefreshToken.for_user(user).access_token
+        token.set_exp(lifetime=timedelta(minutes=10))
+        user.reset_token = str(token)
+
         return Response(
-            {"message": "Verification Code Sent", "phone": phone},
+            {"message": "Verification Code Sent", "phone": phone, 'verify_token': str(token)},
             status=status.HTTP_200_OK
         )
 
@@ -152,8 +161,15 @@ class PhoneVerifyConfirmView(APIView):
     def post(self, request):
         serializer = PhoneVerificationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            token = AccessToken(data['verify_token'])
+        except Exception:
+            # raise a DRF validation error
+            raise ValidationError({"message": "Invalid or expired token"})
 
-        user = request.user
+        user = User.objects.get(id=token['user_id'])
+
         user.phone = serializer.validated_data['phone']
         user.phone_is_verified = True
         user.save()
