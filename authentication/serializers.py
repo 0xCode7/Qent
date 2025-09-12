@@ -36,7 +36,6 @@ class UserSerializer(serializers.ModelSerializer):
             return CountrySerializer(country_obj).data
         return None
 
-
 class RegisterSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True)
@@ -46,14 +45,13 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['full_name', 'email', 'phone', 'password', 'country']
+        fields = ['full_name', 'email', 'phone', 'password', 'country_id']
 
     def validate_country_id(self, value):
         """Ensure the country ID exists and return abbreviation."""
         country_obj = next((c for c in COUNTRIES if c["id"] == value), None)
         if not country_obj:
             raise serializers.ValidationError("Invalid country ID")
-        # store abbreviation in DB (e.g. "US")
         return country_obj["abbreviation"]
 
     def validate_email(self, value):
@@ -63,11 +61,11 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password')
+        validated_data["country"] = validated_data.pop("country_id")  # store abbreviation
         user = User(**validated_data)
         user.set_password(password)
         user.save()
         return user
-
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
