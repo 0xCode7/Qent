@@ -42,13 +42,13 @@ class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField(required=True)
     phone = serializers.CharField(required=True)
-    country = serializers.IntegerField(write_only=True)
+    country_id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = User
         fields = ['full_name', 'email', 'phone', 'password', 'country']
 
-    def validate_country(self, value):
+    def validate_country_id(self, value):
         """Ensure the country ID exists and return abbreviation."""
         country_obj = next((c for c in COUNTRIES if c["id"] == value), None)
         if not country_obj:
