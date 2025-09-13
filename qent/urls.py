@@ -9,7 +9,7 @@ router = routers.SimpleRouter()
 urlpatterns = [
     path('api/auth/', include('authentication.urls')),
 
-    path('api/puplic/countries/', CountriesView.as_view(), name='countries'),
+    path('api/public/countries/', CountriesView.as_view(), name='countries'),
     path('admin/', admin.site.urls),
 
     path('Downlaod', SpectacularAPIView.as_view(), name='schema'),
