@@ -130,7 +130,6 @@ class PhoneVerificationRequestSerializer(serializers.Serializer):
 
 
 class PhoneVerificationSerializer(serializers.Serializer):
-    phone = serializers.CharField()
     code = serializers.CharField()
     verify_token = serializers.CharField()
 

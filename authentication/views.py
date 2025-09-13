@@ -148,6 +148,7 @@ class PhoneVerifyRequestView(APIView):
         token = RefreshToken.for_user(user).access_token
         token.set_exp(lifetime=timedelta(minutes=10))
         user.reset_token = str(token)
+        user.phone = phone
 
         return Response(
             {"message": "Verification Code Sent", "phone": phone, 'verify_token': str(token)},
@@ -170,7 +171,6 @@ class PhoneVerifyConfirmView(APIView):
 
         user = User.objects.get(id=token['user_id'])
 
-        user.phone = serializer.validated_data['phone']
         user.phone_is_verified = True
         user.save()
 
