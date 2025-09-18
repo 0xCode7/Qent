@@ -1,11 +1,10 @@
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-
-from .models import User
+from .models import User, Location
 from rest_framework import serializers
 from django.conf import settings
-
 import os, json
+
 
 COUNTRIES_FILE = os.path.join(settings.BASE_DIR, 'authentication/data/countries.json')
 with open(COUNTRIES_FILE, 'r', encoding='utf-8') as f:
@@ -18,13 +17,19 @@ class CountrySerializer(serializers.Serializer):
     country = serializers.CharField()
     abbreviation = serializers.CharField()
 
+class LocationSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    lat = serializers.FloatField()
+    lng = serializers.FloatField()
 
 class UserSerializer(serializers.ModelSerializer):
     country = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'full_name', 'email', 'phone', 'phone_is_verified', 'country']
+        fields = ['id', 'full_name', 'email', 'phone', 'phone_is_verified' ,'country', 'location']
         read_only_fields = ['id', 'email']
 
     def get_country(self, obj):
@@ -36,16 +41,23 @@ class UserSerializer(serializers.ModelSerializer):
             return CountrySerializer(country_obj).data
         return None
 
+    def get_location(self, obj):
+        if obj.location:
+            return LocationSerializer(obj.location).data
+        return None
+
+
 class RegisterSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(required=True)
     password = serializers.CharField(write_only=True)
     email = serializers.EmailField(required=True)
     phone = serializers.CharField(required=True)
     country_id = serializers.IntegerField(write_only=True)
+    location_id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = User
-        fields = ['full_name', 'email', 'phone', 'password', 'country_id']
+        fields = ['full_name', 'email', 'phone', 'password', 'country_id', 'location_id']
 
     def validate_country_id(self, value):
         """Ensure the country ID exists and return abbreviation."""
@@ -97,7 +109,6 @@ class ForgotPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("User with this email does not exist.")
         return value
 
-
 class ResetPasswordSerializer(serializers.Serializer):
     code = serializers.CharField()
     reset_token = serializers.CharField()
@@ -127,7 +138,6 @@ class ResetPasswordSerializer(serializers.Serializer):
 
 class PhoneVerificationRequestSerializer(serializers.Serializer):
     phone = serializers.CharField()
-
 
 class PhoneVerificationSerializer(serializers.Serializer):
     code = serializers.CharField()

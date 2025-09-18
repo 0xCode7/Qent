@@ -6,7 +6,7 @@ from rest_framework.exceptions import ValidationError
 
 from .serializers import RegisterSerializer, CountrySerializer, PhoneVerificationSerializer, \
     PhoneVerificationRequestSerializer, UserSerializer, LoginSerializer, ForgotPasswordSerializer, \
-    ResetPasswordSerializer
+    ResetPasswordSerializer, LocationSerializer
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from .models import Location
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 User = get_user_model()
@@ -60,6 +61,11 @@ class RegisterView(generics.CreateAPIView):
                 "refresh": str(refresh)
             }
         }, status=status.HTTP_201_CREATED)
+
+
+class LocationView(generics.ListAPIView):
+    queryset = Location.objects.all()
+    serializer_class = LocationSerializer
 
 
 class LoginView(APIView):

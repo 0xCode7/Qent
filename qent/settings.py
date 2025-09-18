@@ -36,18 +36,11 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "corsheaders",
-
-    # Allauth
-    "allauth",
-    "allauth.account",
-    "allauth.socialaccount",
-
-    # dj-rest-auth
-    "dj_rest_auth",
-    "dj_rest_auth.registration",
+    "django_extensions",
 
     # Custom apps
     "authentication",
+    'cars'
 ]
 
 # ----------------------
@@ -60,7 +53,6 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
-    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -142,7 +134,6 @@ SIMPLE_JWT = {
 AUTH_USER_MODEL = "authentication.User"
 AUTHENTICATION_BACKENDS = (
     "django.contrib.auth.backends.ModelBackend",
-    "allauth.account.auth_backends.AuthenticationBackend",
 )
 
 SITE_ID = 1
@@ -170,6 +161,11 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+# ----------------------
+# Media files
+# ----------------------
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # ----------------------
 # CORS & CSRF
 # ----------------------
