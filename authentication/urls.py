@@ -7,6 +7,7 @@ urlpatterns = [
     path('register/', views.RegisterView.as_view(), name='register'),
     path('login/', views.LoginView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(), name='logout'),
+    path('profile/', views.ProfileView.as_view(), name='profile'),
     path('token/refresh/', TokenRefreshView.as_view(), name='refresh_token'),
     path("phone/request_verify_code/", views.PhoneVerifyRequestView.as_view(), name="phone_verify_request"),
     path("phone/confirm_verify_code/", PhoneVerifyConfirmView.as_view(), name="phone_verify_confirm"),

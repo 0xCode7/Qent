@@ -6,7 +6,7 @@ from rest_framework.exceptions import ValidationError
 
 from .serializers import RegisterSerializer, CountrySerializer, PhoneVerificationSerializer, \
     PhoneVerificationRequestSerializer, UserSerializer, LoginSerializer, ForgotPasswordSerializer, \
-    ResetPasswordSerializer, LocationSerializer
+    ResetPasswordSerializer, LocationSerializer, ProfileSerializer
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -62,6 +62,17 @@ class RegisterView(generics.CreateAPIView):
             }
         }, status=status.HTTP_201_CREATED)
 
+class ProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = ProfileSerializer
+
+    def get_object(self):
+        return self.request.user.profile
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return Response({
+            "message": "Profile updated successfully",
+            "profile": response.data
+        }, status=status.HTTP_200_OK)
 
 class LocationView(generics.ListAPIView):
     queryset = Location.objects.all()
