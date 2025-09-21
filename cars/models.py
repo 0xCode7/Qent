@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 import os
 
+
 def car_image_upload_path(instance, filename):
     ext = filename.split('.')[-1]
     name_slug = slugify(instance.name)
@@ -13,7 +14,6 @@ def car_image_upload_path(instance, filename):
 
     # ✅ Store inside /media/cars/<brand-name>/
     return os.path.join("cars", slugify(instance.brand.name), new_filename)
-
 
 
 # -------------------- MODELS --------------------
@@ -57,7 +57,16 @@ class Car(models.Model):
     average_rate = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
-    price_per_day = models.FloatField()
+
+    is_for_rent = models.BooleanField(default=False)
+    daily_rent = models.FloatField(null=True, blank=True)
+    weekly_rent = models.FloatField(null=True, blank=True)
+    monthly_rent = models.FloatField(null=True, blank=True)
+    yearly_rent = models.FloatField(null=True, blank=True)
+
+    is_for_pay = models.BooleanField(default=False)
+    price = models.FloatField(null=True, blank=True)
+
     available_to_book = models.BooleanField(default=False)
 
     def __str__(self):

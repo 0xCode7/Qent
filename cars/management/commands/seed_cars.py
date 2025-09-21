@@ -6,6 +6,7 @@ from django.core.files import File
 from cars.models import Brand, Color, CarFeature, Car, Review
 from authentication.models import User, Location
 
+
 class Command(BaseCommand):
     help = "Seed database with brands, cars, features, colors, and locations"
 
@@ -99,16 +100,31 @@ class Command(BaseCommand):
             for _ in range(random.randint(10, 15)):
                 model_name = random.choice(models)
                 car_file = random.choice(car_files)
+
+                # Decide if this car is for rent, for pay, or both
+                is_for_rent = random.choice([True, False])
+                is_for_pay = random.choice([True, False])
+
                 car = Car.objects.create(
                     name=f"{brand_name} {model_name}",
-                    description=f"A stylish {brand_name} {model_name} available for rent.",
+                    description=f"A stylish {brand_name} {model_name} available for rent or purchase.",
                     brand=brand,
                     color=random.choice(colors),
                     location=random.choice(locations),
                     average_rate=random.randint(3, 5),
-                    price_per_day=random.randint(50, 200),
                     available_to_book=random.choice([True, False]),
+
+                    # New fields
+                    is_for_rent=is_for_rent,
+                    daily_rent=random.uniform(30, 100) if is_for_rent else None,
+                    weekly_rent=random.uniform(200, 500) if is_for_rent else None,
+                    monthly_rent=random.uniform(800, 2000) if is_for_rent else None,
+                    yearly_rent=random.uniform(5000, 15000) if is_for_rent else None,
+
+                    is_for_pay=is_for_pay,
+                    price=random.uniform(10000, 50000) if is_for_pay else None,
                 )
+
                 # Save car image
                 with open(os.path.join(default_cars_path, car_file), "rb") as f:
                     car.image.save(car_file, File(f), save=True)
@@ -122,8 +138,8 @@ class Command(BaseCommand):
         if not User.objects.exists():
             for i in range(5):
                 User.objects.create_user(
-                    username=f"user{i+1}",
-                    email=f"user{i+1}@mail.com",
+                    username=f"user{i + 1}",
+                    email=f"user{i + 1}@mail.com",
                     password="password123"
                 )
 

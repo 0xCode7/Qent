@@ -62,17 +62,29 @@ class RegisterView(generics.CreateAPIView):
             }
         }, status=status.HTTP_201_CREATED)
 
-class ProfileView(generics.RetrieveUpdateAPIView):
+
+class ProfileDetailsView(generics.RetrieveAPIView):
     serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_object(self):
         return self.request.user.profile
+
+
+class ProfileEditView(generics.UpdateAPIView):
+    serializer_class = ProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user.profile
+
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
-        return Response({
-            "message": "Profile updated successfully",
-            "profile": response.data
-        }, status=status.HTTP_200_OK)
+        return Response(
+            {"message": "Profile updated successfully", "data": response.data["data"]},
+            status=status.HTTP_200_OK
+        )
+
 
 class LocationView(generics.ListAPIView):
     queryset = Location.objects.all()
@@ -115,12 +127,12 @@ class ForgotPasswordView(APIView):
 
         # generate random 4-digit code
         code = str(random.randint(1000, 9999))
-        user.reset_code = code
+        user.profile.reset_code = code
 
         # create a short-lived access token for password reset
         token = RefreshToken.for_user(user).access_token
         token.set_exp(lifetime=timedelta(minutes=10))
-        user.reset_token = str(token)
+        user.profile.reset_token = str(token)
 
         user.save()
         return Response(
@@ -143,8 +155,8 @@ class ResetPasswordView(APIView):
         user = User.objects.get(id=token['user_id'])
 
         user.set_password(data["password"])
-        user.reset_code = None  # clear code
-        user.reset_token = None  # clear token
+        user.profile.reset_code = None  # clear code
+        user.profile.reset_token = None  # clear token
         user.save()
 
         return Response({"message": "Password reset successfully"}, status=status.HTTP_200_OK)

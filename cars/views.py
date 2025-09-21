@@ -41,6 +41,10 @@ class BrandListView(generics.ListAPIView):
     queryset = Brand.objects.all()
     serializer_class = BrandSerializer
 
+class BrandDetailsView(generics.RetrieveAPIView):
+    queryset = Brand.objects.all()
+    serializer_class = BrandSerializer
+
 
 class BestCarsListView(generics.ListAPIView):
     queryset = Car.objects.order_by('-average_rate')[:6]
@@ -54,11 +58,11 @@ class NearestCarListView(generics.ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if not user.location:
+        if not user.profile.location:
             return Car.objects.none()  # If user has no location
 
-        user_lat = float(user.location.lat)
-        user_lng = float(user.location.lng)
+        user_lat = float(user.profile.location.lat)
+        user_lng = float(user.profile.location.lng)
 
         cars = Car.objects.all()
         # Create a list of tuples (car, distance)

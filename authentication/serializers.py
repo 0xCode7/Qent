@@ -1,7 +1,6 @@
 from django.contrib.auth import authenticate
-from django_extensions.management.commands.export_emails import full_name
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from .models import User, Profile
+from .models import User, Profile, Location
 from rest_framework import serializers
 from django.conf import settings
 import os, json
@@ -23,6 +22,7 @@ class LocationSerializer(serializers.Serializer):
     name = serializers.CharField()
     lat = serializers.FloatField()
     lng = serializers.FloatField()
+
 
 class UserSerializer(serializers.ModelSerializer):
     country = serializers.SerializerMethodField()
@@ -72,17 +72,71 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    location = LocationSerializer(read_only=True)  # for output
+    location_id = serializers.PrimaryKeyRelatedField(
+        queryset=Location.objects.all(),
+        source="location",
+        write_only=True,
+        required=False
+    )
+    country = serializers.SerializerMethodField()
+    country_id = serializers.IntegerField(write_only=True, required=False)
+    email = serializers.EmailField(write_only=True, required=False)  # add email here
+
     class Meta:
         model = Profile
-        fields = ["full_name", "phone", "phone_is_verified", "location", "available_to_create_car"]
-
+        fields = [
+            "full_name",
+            "email",
+            "phone",
+            "phone_is_verified",
+            "location",
+            "location_id",
+            'country',
+            "country_id",
+            "available_to_create_car",
+        ]
         read_only_fields = ["phone_is_verified"]
 
+    def get_country(self, obj):
+        country_obj = next((c for c in COUNTRIES if c["abbreviation"] == obj.country), None)
+        if country_obj:
+            return CountrySerializer(country_obj).data
+        return None
+
     def update(self, instance, validated_data):
-        new_phone = validated_data.get('phone')
+        new_phone = validated_data.get("phone")
         if new_phone and new_phone != instance.phone:
             instance.phone_is_verified = False
+
+        # Handle country
+        country_id = validated_data.pop("country_id", None)
+        if country_id:
+            country_obj = next((c for c in COUNTRIES if c["id"] == country_id), None)
+            if not country_obj:
+                raise serializers.ValidationError({"country_id": "Invalid country ID"})
+            validated_data["country"] = country_obj["abbreviation"]
+
+        # Handle User updates (email, full_name, etc.)
+        user = instance.user
+        email = validated_data.pop("email", None)
+        if email:
+            user.email = email
+
+        full_name = validated_data.pop("full_name", None)
+        if full_name:
+            user.full_name = full_name
+
+        user.save()
+
+        # Now update only Profile fields
         return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        user_data = UserSerializer(instance.user).data
+        profile_data = super().to_representation(instance)
+        merged = {**user_data, **profile_data}
+        return {"data": merged}
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -123,17 +177,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
 
-        # create profile
-        Profile.objects.create(
-            user=user,
-            full_name=full_name,
-            country=country_abbr,
-            phone=phone,
-            location_id=location_id,
-            available_to_create_car=available_to_create_car
-        )
+        # update profile
+        profile = user.profile
+        profile.full_name = full_name
+        profile.phone = phone
+        profile.country = country_abbr
+        profile.location_id = location_id
+        profile.available_to_create_car = available_to_create_car
+        profile.save()
 
         return user
+
 
 class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
@@ -184,11 +238,11 @@ class ResetPasswordSerializer(serializers.Serializer):
         except User.DoesNotExist:
             raise serializers.ValidationError({"message": "User does not exist"})
 
-        if user.reset_code != data["code"]:
+        if user.profile.reset_code != data["code"]:
             raise serializers.ValidationError({"message": "Invalid reset code"})
 
         # verify token
-        if user.reset_token != str(token):
+        if user.profile.reset_token != str(token):
             raise serializers.ValidationError({"message": "Invalid reset token"})
 
         return data

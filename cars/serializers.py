@@ -41,7 +41,9 @@ class CarSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "image", "description",
             "brand", "color", "car_features",
-            "location", "average_rate", "price_per_day",
+            "location", "average_rate",
+            "is_for_rent", "daily_rent", "weekly_rent", "monthly_rent", "yearly_rent",
+            "is_for_pay","price",
             "available_to_book", "reviews", 'location'
         ]
     def get_location(self, obj):
