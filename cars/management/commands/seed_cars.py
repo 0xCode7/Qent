@@ -104,10 +104,11 @@ class Command(BaseCommand):
                 # Decide if this car is for rent, for pay, or both
                 is_for_rent = random.choice([True, False])
                 is_for_pay = random.choice([True, False])
-
+                car_type = random.choice(['Regular','Luxury'])
                 car = Car.objects.create(
                     name=f"{brand_name} {model_name}",
                     description=f"A stylish {brand_name} {model_name} available for rent or purchase.",
+                    car_type=car_type,
                     brand=brand,
                     color=random.choice(colors),
                     location=random.choice(locations),

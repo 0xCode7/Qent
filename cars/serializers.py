@@ -39,8 +39,8 @@ class CarSerializer(serializers.ModelSerializer):
     class Meta:
         model = Car
         fields = [
-            "id", "name", "image", "description",
-            "brand", "color", "car_features",
+            "id", "name", "image", "description", 'car_type',
+            "brand", "color", "car_features",'seating_capacity',
             "location", "average_rate",
             "is_for_rent", "daily_rent", "weekly_rent", "monthly_rent", "yearly_rent",
             "is_for_pay","price",

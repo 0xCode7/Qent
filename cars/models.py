@@ -47,11 +47,16 @@ class Car(models.Model):
     name = models.CharField(max_length=255, null=False, blank=False)
     image = models.ImageField(upload_to=car_image_upload_path)
     description = models.CharField(max_length=255)
+    TYPE_CHOICES = [
+        ('regular', 'Regular'),
+        ('luxury', 'Luxury'),
+    ]
+    car_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='regular')
 
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name="cars")
     color = models.ForeignKey(Color, on_delete=models.CASCADE, related_name="cars")
     car_features = models.ManyToManyField(CarFeature, related_name="cars")
-
+    seating_capacity = models.PositiveSmallIntegerField(null=True, blank=True, default='4')
     location = models.ForeignKey(Location, on_delete=models.PROTECT)
 
     average_rate = models.PositiveSmallIntegerField(

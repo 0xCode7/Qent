@@ -17,6 +17,8 @@ from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from .models import Location
+from rest_framework.exceptions import ValidationError
+
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 User = get_user_model()
@@ -170,17 +172,23 @@ class PhoneVerifyRequestView(APIView):
         serializer.is_valid(raise_exception=True)
 
         phone = serializer.validated_data['phone']
-
         user = request.user
 
         # create a short-lived access token for password reset
         token = RefreshToken.for_user(user).access_token
         token.set_exp(lifetime=timedelta(minutes=10))
-        user.reset_token = str(token)
-        user.phone = phone
+        user.profile.reset_token = str(token)
+
+        reset_code = str(random.randint(1000, 9999))
+        user.profile.reset_code = reset_code
+        user.profile.save()
+
+        if user.profile.phone != phone:
+            raise ValidationError({"message":"There is no account with the given number"})
+
 
         return Response(
-            {"message": "Verification Code Sent", "phone": phone, 'verify_token': str(token)},
+            {"message": "Verification Code Sent", "code":reset_code, 'verify_token': str(token)},
             status=status.HTTP_200_OK
         )
 
@@ -200,7 +208,14 @@ class PhoneVerifyConfirmView(APIView):
 
         user = User.objects.get(id=token['user_id'])
 
-        user.phone_is_verified = True
+        reset_code= data['code']
+
+        if user.profile.reset_code != reset_code:
+            raise ValidationError({"message": "Invalid code"})
+
+        user.profile.phone_is_verified = True
+        user.profile.reset_code = None
+        user.profile.reset_token = None
         user.save()
 
         return Response({"user": UserSerializer(user).data,

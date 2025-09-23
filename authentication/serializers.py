@@ -255,8 +255,3 @@ class PhoneVerificationRequestSerializer(serializers.Serializer):
 class PhoneVerificationSerializer(serializers.Serializer):
     code = serializers.CharField()
     verify_token = serializers.CharField()
-
-    def validate_code(self, value):
-        if value != os.getenv("VERIFICATION_CODE"):
-            raise serializers.ValidationError("Invalid verification code")
-        return value
