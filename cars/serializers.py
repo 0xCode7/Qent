@@ -40,7 +40,7 @@ class CarSerializer(serializers.ModelSerializer):
     brand = BrandSerializer(read_only=True)
     color = ColorSerializer(read_only=True)
     car_features = CarFeatureSerializer(many=True, read_only=True)
-    reviews = ReviewSerializer(many=True, read_only=True)
+    reviews = serializers.SerializerMethodField()
     location = serializers.SerializerMethodField()
     images = CarImageSerializer(many=True, read_only=True)
     first_image = serializers.SerializerMethodField(read_only=True)
@@ -72,3 +72,7 @@ class CarSerializer(serializers.ModelSerializer):
 
     def get_reviews_avg(self, obj):
         return obj.reviews.aggregate(avg=Avg("rate"))["avg"] or 0
+
+    def get_reviews(self, obj):
+        reviews = obj.reviews.all()[:3]
+        return ReviewSerializer(reviews ,many=True).data

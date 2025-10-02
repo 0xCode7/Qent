@@ -31,6 +31,14 @@ class CarDetailView(generics.RetrieveAPIView):
     serializer_class = CarSerializer
 
 
+# Get all reviews
+class GetAllReviewsView(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        car_id = self.kwargs.get('car_id')
+        return Review.objects.filter(car_id=car_id).select_related("user__profile")
+
 # Add a review
 class ReviewCreateView(generics.CreateAPIView):
     serializer_class = ReviewSerializer
