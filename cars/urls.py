@@ -11,6 +11,6 @@ urlpatterns = [
     path("cars/nearest", NearestCarListView.as_view(), name="nearest_cars"),
     path("brands/", BrandListView.as_view(), name="brand_list"),
     path("brands/<int:pk>", BrandDetailsView.as_view(), name="brand_list"),
-    path("search/", CarSearchView.as_view(), name="search"),
+    path("cars/search/", CarSearchView.as_view(), name="search"),
 
 ]

@@ -124,21 +124,17 @@ class CarSearchView(generics.ListAPIView):
         if car_type:
             queryset = queryset.filter(car_type__iexact=car_type)
 
-        # -----Sale Type -> Rental Time + Price -----
+        # ----- Sale Type -> Rent / Pay / Both -----
         sale_type = params.get('type')
         min_price = params.get('min_price')
         max_price = params.get('max_price')
 
         if sale_type == "rent":
             queryset = queryset.filter(is_for_rent=True)
-
             rental_time = params.get('rental_time')  # 'daily', 'weekly', 'monthly', 'yearly'
             if rental_time:
-                rental_field = f"{rental_time}_rent"  # "daily_rent", "....."
-                queryset = queryset.filter(
-                    **{f"{rental_field}__isnull": False})  # Return only car has the rental_time value
-
-
+                rental_field = f"{rental_time}_rent"
+                queryset = queryset.filter(**{f"{rental_field}__isnull": False})
                 if min_price:
                     queryset = queryset.filter(**{f"{rental_field}__gte": float(min_price)})
                 if max_price:
@@ -146,21 +142,20 @@ class CarSearchView(generics.ListAPIView):
 
         elif sale_type == "pay":
             queryset = queryset.filter(is_for_pay=True)
-
             if min_price:
                 queryset = queryset.filter(price__gte=float(min_price))
             if max_price:
                 queryset = queryset.filter(price__lte=float(max_price))
 
-        elif sale_type == "rent_sale":
+        elif sale_type == "rent_pay":
             queryset = queryset.filter(Q(is_for_rent=True) | Q(is_for_pay=True))
 
-        # ----- Car Location -----
+        # ----- Location -----
         location_id = params.get('location_id')
         if location_id:
             queryset = queryset.filter(location__id=location_id)
 
-        # ----- Colors -----
+        # ----- Color -----
         color_id = params.get('color_id')
         if color_id:
             queryset = queryset.filter(color__id=color_id)
@@ -170,7 +165,7 @@ class CarSearchView(generics.ListAPIView):
         if seats:
             queryset = queryset.filter(seating_capacity__gte=int(seats))
 
-        # ----- Fuel Type via CarFeature -----
+        # ----- Fuel Type (CarFeature) -----
         fuels = params.getlist('fuel_type')
         if fuels:
             queryset = queryset.filter(
@@ -179,6 +174,14 @@ class CarSearchView(generics.ListAPIView):
             ).distinct()
 
         return queryset
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        if not queryset.exists():
+            return Response({"message": "No results found"}, status=status.HTTP_200_OK)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class APISettings(APIView):
