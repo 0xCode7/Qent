@@ -1,6 +1,6 @@
 import math
 from django.db.models import Q, Min, Max
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -48,6 +48,15 @@ class ReviewCreateView(generics.CreateAPIView):
         car_id = self.kwargs.get("car_id")
         serializer.save(user=self.request.user, car_id=car_id)
 
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return Response(
+            {
+                "message": "Review added successfully",
+                "review": response.data
+            },
+            status=status.HTTP_201_CREATED
+        )
 
 class BrandListView(generics.ListAPIView):
     queryset = Brand.objects.all()
