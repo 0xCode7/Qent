@@ -6,14 +6,12 @@ from django.utils.text import slugify
 import os
 
 
-def car_image_upload_path(instance, filename):
-    ext = filename.split('.')[-1]
-    name_slug = slugify(instance.name)
-    timestamp = timezone.now().strftime("%Y%m%d_%H%M%S")
-    new_filename = f"{name_slug}_{timestamp}.{ext}"
 
-    # ✅ Store inside /media/cars/<brand-name>/
-    return os.path.join("cars", slugify(instance.brand.name), new_filename)
+
+def car_image_upload_path(instance, filename):
+    brand_slug = slugify(instance.car.brand.name)
+    model_slug = slugify(instance.car.name)
+    return f"cars/{brand_slug}/{model_slug}/{filename}"
 
 
 # -------------------- MODELS --------------------
@@ -45,7 +43,6 @@ class Brand(models.Model):
 
 class Car(models.Model):
     name = models.CharField(max_length=255, null=False, blank=False)
-    image = models.ImageField(upload_to=car_image_upload_path)
     description = models.CharField(max_length=255)
     TYPE_CHOICES = [
         ('regular', 'Regular'),
@@ -76,6 +73,14 @@ class Car(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class CarImage(models.Model):
+    car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to=car_image_upload_path)
+
+    def __str__(self):
+        return f"Image for {self.car.name}"
 
 
 class Review(models.Model):

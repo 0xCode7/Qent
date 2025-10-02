@@ -1,7 +1,10 @@
 import math
-from django.db.models import Q
+from django.db.models import Q, Min, Max
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
 from .models import Car, Review, Brand
 from .serializers import CarSerializer, ReviewSerializer, BrandSerializer
 
@@ -79,6 +82,7 @@ class NearestCarListView(generics.ListAPIView):
         nearest_cars_ids = [c[0].id for c in car_with_distance[:10]]
         return Car.objects.filter(id__in=nearest_cars_ids)
 
+
 class CarSearchView(generics.ListAPIView):
     serializer_class = CarSerializer
 
@@ -119,10 +123,17 @@ class CarSearchView(generics.ListAPIView):
             if max_price:
                 queryset = queryset.filter(price__lte=float(max_price))
 
+        # ----- Pickup and Drop Date -----
+
+        # ----- Car Location -----
+        location_id = params.get('location_id')
+        if location_id:
+            queryset = queryset.filter(location__id=location_id)
+
         # ----- Colors -----
-        colors = params.getlist('color')
-        if colors:
-            queryset = queryset.filter(color__name__in=colors)
+        color_id = params.get('color_id')
+        if color_id:
+            queryset = queryset.filter(color__id=color_id)
 
         # ----- Seating Capacity -----
         seats = params.get('seating_capacity')
@@ -138,3 +149,50 @@ class CarSearchView(generics.ListAPIView):
             ).distinct()
 
         return queryset
+
+
+class APISettings(APIView):
+    def get(self, request):
+        def get_price_range():
+            # 1. get min and max prices
+            price_stats = Car.objects.aggregate(
+                min_price=Min("price"),
+                max_price=Max("price")
+            )
+
+            min_price = price_stats["min_price"] or 0
+            max_price = price_stats["max_price"] or 0
+
+            if max_price == 0:
+                return Response({"price_distribution": [], "min_price": 0, "max_price": 0})
+
+            # 2. number of buckets (adjust as needed)
+            num_buckets = 20
+            bucket_size = (max_price - min_price) / num_buckets if max_price > min_price else 1
+
+            # 3. prepare buckets as list of dicts
+            buckets = [
+                {
+                    "min": int(min_price + i * bucket_size),
+                    "max": int(min_price + (i + 1) * bucket_size),
+                    "count": 0
+                }
+                for i in range(num_buckets)
+            ]
+
+            # 4. count cars into buckets
+            for car in Car.objects.only("price"):
+                if car.price is None:
+                    continue
+                idx = int((car.price - min_price) / bucket_size)
+                if idx == num_buckets:  # edge case for max price
+                    idx -= 1
+                buckets[idx]["count"] += 1
+
+            # 5. return result
+            return {
+                "price_range": buckets,
+                "min_price": min_price,
+                "max_price": max_price,
+            }
+        return Response({"price": get_price_range()})

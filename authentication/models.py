@@ -1,4 +1,4 @@
-import uuid
+import uuid, os
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 
@@ -7,6 +7,10 @@ from django.contrib.auth.models import AbstractUser
 def default_location():
     return {"lat": 30.0444, "lng": 31.2357}
 
+def user_profile_image_path(instance, filename):
+    ext = filename.split('.')[-1]
+    unique_name = f"{instance.user.username}-{uuid.uuid4().hex}.{ext}"
+    return os.path.join("profile", instance.user.username, unique_name)
 
 class Location(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -28,6 +32,12 @@ class User(AbstractUser):
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    image = models.ImageField(
+        upload_to=user_profile_image_path,
+        blank=True,
+        null=True,
+        default='default/profile/profile.jpg'
+    )
     full_name = models.CharField(max_length=255, null=False, blank=False)
     country = models.CharField(max_length=3, default='PS')
     phone = models.CharField(max_length=20, null=False, blank=False, default='')

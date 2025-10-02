@@ -8,6 +8,8 @@ from django.conf.urls.static import static
 from django.views.static import serve
 from django.urls import re_path
 
+from cars.views import APISettings
+
 router = routers.SimpleRouter()
 
 urlpatterns = [
@@ -18,6 +20,7 @@ urlpatterns = [
     path('api/', include('cars.urls')),
 
     path('api/public/countries/', CountriesView.as_view(), name='countries'),
+    path('api/public/settings/', APISettings.as_view(), name='settings'),
     path('api/public/register_locations/', LocationView.as_view(), name="location"),
 
     # Optional UI:
