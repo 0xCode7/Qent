@@ -39,6 +39,7 @@ class GetAllReviewsView(generics.ListAPIView):
         car_id = self.kwargs.get('car_id')
         return Review.objects.filter(car_id=car_id).select_related("user__profile")
 
+
 # Add a review
 class ReviewCreateView(generics.CreateAPIView):
     serializer_class = ReviewSerializer
@@ -57,6 +58,7 @@ class ReviewCreateView(generics.CreateAPIView):
             },
             status=status.HTTP_201_CREATED
         )
+
 
 class BrandListView(generics.ListAPIView):
     queryset = Brand.objects.all()
@@ -122,25 +124,36 @@ class CarSearchView(generics.ListAPIView):
         if car_type:
             queryset = queryset.filter(car_type__iexact=car_type)
 
-        # ----- Rental Time + Price -----
-        rental_time = params.get('rental_time')  # 'daily', 'weekly', 'monthly', 'yearly'
+        # -----Sale Type -> Rental Time + Price -----
+        sale_type = params.get('type')
         min_price = params.get('min_price')
         max_price = params.get('max_price')
 
-        if rental_time:
-            rental_field = f"{rental_time}_rent"
-            queryset = queryset.filter(is_for_rent=True, **{f"{rental_field}__isnull": False})
-            if min_price:
-                queryset = queryset.filter(**{f"{rental_field}__gte": float(min_price)})
-            if max_price:
-                queryset = queryset.filter(**{f"{rental_field}__lte": float(max_price)})
-        else:
+        if sale_type == "rent":
+            queryset = queryset.filter(is_for_rent=True)
+
+            rental_time = params.get('rental_time')  # 'daily', 'weekly', 'monthly', 'yearly'
+            if rental_time:
+                rental_field = f"{rental_time}_rent"  # "daily_rent", "....."
+                queryset = queryset.filter(
+                    **{f"{rental_field}__isnull": False})  # Return only car has the rental_time value
+
+
+                if min_price:
+                    queryset = queryset.filter(**{f"{rental_field}__gte": float(min_price)})
+                if max_price:
+                    queryset = queryset.filter(**{f"{rental_field}__lte": float(max_price)})
+
+        elif sale_type == "pay":
+            queryset = queryset.filter(is_for_pay=True)
+
             if min_price:
                 queryset = queryset.filter(price__gte=float(min_price))
             if max_price:
                 queryset = queryset.filter(price__lte=float(max_price))
 
-        # ----- Pickup and Drop Date -----
+        elif sale_type == "rent_sale":
+            queryset = queryset.filter(Q(is_for_rent=True) | Q(is_for_pay=True))
 
         # ----- Car Location -----
         location_id = params.get('location_id')
@@ -212,4 +225,5 @@ class APISettings(APIView):
                 "min_price": min_price,
                 "max_price": max_price,
             }
+
         return Response({"price": get_price_range()})

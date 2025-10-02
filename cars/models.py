@@ -61,13 +61,13 @@ class Car(models.Model):
     )
 
     is_for_rent = models.BooleanField(default=False)
-    daily_rent = models.FloatField(null=True, blank=True)
-    weekly_rent = models.FloatField(null=True, blank=True)
-    monthly_rent = models.FloatField(null=True, blank=True)
-    yearly_rent = models.FloatField(null=True, blank=True)
+    daily_rent = models.DecimalField(null=True, blank=True,max_digits=10, decimal_places=2)
+    weekly_rent = models.DecimalField(null=True, blank=True,max_digits=10, decimal_places=2)
+    monthly_rent = models.DecimalField(null=True, blank=True,max_digits=10, decimal_places=2)
+    yearly_rent = models.DecimalField(null=True, blank=True,max_digits=10, decimal_places=2)
 
     is_for_pay = models.BooleanField(default=False)
-    price = models.FloatField(null=True, blank=True)
+    price = models.DecimalField(null=True, blank=True,max_digits=10, decimal_places=2)
 
     available_to_book = models.BooleanField(default=False)
 

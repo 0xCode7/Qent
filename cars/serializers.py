@@ -21,10 +21,21 @@ class CarFeatureSerializer(serializers.ModelSerializer):
         model = CarFeature
         fields = ["id", "name", "value", "image"]
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.name.lower() in ['seating_capacity' , 'seats']:
+            try:
+                count = int(instance.value)
+                data['value'] = f"{count} Seats" if count > 1 else "1 Seat"
+            except ValueError:
+                data['value'] = instance.value
+        return data
+
 
 class ReviewSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source="user.username", read_only=True)
     user_image = serializers.ImageField(source="user.profile.image", read_only=True)
+
     class Meta:
         model = Review
         fields = ["id", "username", "review", "user_image", "rate"]
@@ -44,9 +55,10 @@ class CarSerializer(serializers.ModelSerializer):
     location = serializers.SerializerMethodField()
     images = CarImageSerializer(many=True, read_only=True)
     first_image = serializers.SerializerMethodField(read_only=True)
-
+    seating_capacity = serializers.SerializerMethodField()
     reviews_count = serializers.SerializerMethodField()
     reviews_avg = serializers.SerializerMethodField()
+
     class Meta:
         model = Car
         fields = [
@@ -67,12 +79,17 @@ class CarSerializer(serializers.ModelSerializer):
         first_img = obj.images.first()
         return first_img.image.url if first_img else None
 
+    def get_seating_capacity(self, obj):
+        if obj.seating_capacity:
+            return f"{obj.seating_capacity} Seats" if obj.seating_capacity > 1 else "1 Seat"
+
     def get_reviews_count(self, obj):
         return obj.reviews.count()
 
     def get_reviews_avg(self, obj):
-        return obj.reviews.aggregate(avg=Avg("rate"))["avg"] or 0
+        avg = obj.reviews.aggregate(avg=Avg("rate"))["avg"] or 0
+        return round(avg, 1) if avg else 0.0
 
     def get_reviews(self, obj):
         reviews = obj.reviews.all()[:3]
-        return ReviewSerializer(reviews ,many=True).data
+        return ReviewSerializer(reviews, many=True).data
