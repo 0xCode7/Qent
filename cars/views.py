@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Car, Review, Brand, Color
-from .serializers import CarSerializer, ReviewSerializer, BrandSerializer
+from .serializers import CarSerializer, ReviewSerializer, BrandSerializer, ColorSerializer
 
 
 def haversine(lat1, lng1, lat2, lng2):
@@ -241,5 +241,5 @@ class APISettings(APIView):
 
         def get_colors():
             colors = Color.objects.all()
-            return colors
-        return Response({"price": get_price_range()})
+            return ColorSerializer(colors, many=True).data
+        return Response({"price": get_price_range(), "colors": get_colors()})

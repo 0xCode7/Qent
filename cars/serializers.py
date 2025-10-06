@@ -23,7 +23,7 @@ class CarFeatureSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if instance.name.lower() in ['seating_capacity' , 'seats']:
+        if instance.name.lower() in ['seating_capacity', 'seats']:
             try:
                 count = int(instance.value)
                 data['value'] = f"{count} Seats" if count > 1 else "1 Seat"
@@ -39,7 +39,6 @@ class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = ["id", "username", "review", "user_image", "rate"]
-
 
 
 class CarImageSerializer(serializers.ModelSerializer):
@@ -78,7 +77,14 @@ class CarSerializer(serializers.ModelSerializer):
 
     def get_first_image(self, obj):
         first_img = obj.images.first()
-        return first_img.image.url if first_img else None
+        request = self.context.get('request')
+
+        if first_img and first_img.image:
+            image_url = first_img.image.url
+            if request is not None:
+                return request.build_absolute_uri(image_url)
+            return image_url
+        return None
 
     def get_seating_capacity(self, obj):
         if obj.seating_capacity:
@@ -89,8 +95,8 @@ class CarSerializer(serializers.ModelSerializer):
 
     def get_reviews_avg(self, obj):
         avg = obj.reviews.aggregate(avg=Avg("rate"))["avg"] or 0
-        return round(avg, 1) if avg else 0.0
+        return round(avg, 1)
 
     def get_reviews(self, obj):
         reviews = obj.reviews.all()[:3]
-        return ReviewSerializer(reviews, many=True).data
+        return ReviewSerializer(reviews, many=True, context=self.context).data
