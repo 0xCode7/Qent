@@ -1,11 +1,13 @@
 import math
 from django.db.models import Q, Min, Max
+from django.shortcuts import get_object_or_404
 from rest_framework import generics, status
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Car, Review, Brand
+from .models import Car, Review, Brand, Color
 from .serializers import CarSerializer, ReviewSerializer, BrandSerializer
 
 
@@ -50,6 +52,14 @@ class ReviewCreateView(generics.CreateAPIView):
         serializer.save(user=self.request.user, car_id=car_id)
 
     def create(self, request, *args, **kwargs):
+
+        user = request.user
+        car_id = self.kwargs.get('car_id')
+        car_obj = get_object_or_404(Car, id=car_id)
+
+        if Review.objects.filter(user=user, car=car_obj).exists():
+            raise ValidationError({"message":"You have already reviewed this car."})
+
         response = super().create(request, *args, **kwargs)
         return Response(
             {
@@ -229,4 +239,7 @@ class APISettings(APIView):
                 "max_price": max_price,
             }
 
+        def get_colors():
+            colors = Color.objects.all()
+            return colors
         return Response({"price": get_price_range()})

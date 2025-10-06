@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Car, Brand
+from .models import Car, Brand, Review
 
 
 # Register your models here.
@@ -9,4 +9,8 @@ class CarAdmin(admin.ModelAdmin):
 
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
     pass

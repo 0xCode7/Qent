@@ -6,8 +6,6 @@ from django.utils.text import slugify
 import os
 
 
-
-
 def car_image_upload_path(instance, filename):
     brand_slug = slugify(instance.car.brand.name)
     model_slug = slugify(instance.car.name)
@@ -61,13 +59,13 @@ class Car(models.Model):
     )
 
     is_for_rent = models.BooleanField(default=False)
-    daily_rent = models.DecimalField(null=True, blank=True,max_digits=10, decimal_places=2)
-    weekly_rent = models.DecimalField(null=True, blank=True,max_digits=10, decimal_places=2)
-    monthly_rent = models.DecimalField(null=True, blank=True,max_digits=10, decimal_places=2)
-    yearly_rent = models.DecimalField(null=True, blank=True,max_digits=10, decimal_places=2)
+    daily_rent = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=2)
+    weekly_rent = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=2)
+    monthly_rent = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=2)
+    yearly_rent = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=2)
 
     is_for_pay = models.BooleanField(default=False)
-    price = models.DecimalField(null=True, blank=True,max_digits=10, decimal_places=2)
+    price = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=2)
 
     available_to_book = models.BooleanField(default=False)
 
@@ -90,6 +88,11 @@ class Review(models.Model):
     rate = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)]
     )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'car'], name='user_review')
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.car.name} ({self.rate})"

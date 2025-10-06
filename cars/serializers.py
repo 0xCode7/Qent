@@ -41,6 +41,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         fields = ["id", "username", "review", "user_image", "rate"]
 
 
+
 class CarImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = CarImage
