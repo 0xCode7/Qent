@@ -19,6 +19,9 @@ class CarFeature(models.Model):
     image = models.ImageField(upload_to='icons/')
     value = models.CharField(max_length=255, null=False, blank=False)
 
+    class Meta:
+        ordering = ['id']
+
     def __str__(self):
         return f"{self.name}: {self.value}"
 
@@ -27,6 +30,9 @@ class Color(models.Model):
     name = models.CharField(max_length=50, null=False, blank=False)
     hex_value = models.CharField(max_length=8, null=False, blank=False)
 
+    class Meta:
+        ordering = ['id']
+
     def __str__(self):
         return self.name
 
@@ -34,6 +40,9 @@ class Color(models.Model):
 class Brand(models.Model):
     name = models.CharField(max_length=255, null=False, blank=False)
     image = models.ImageField(upload_to='brands/')
+
+    class Meta:
+        ordering = ['id']
 
     def __str__(self):
         return self.name
@@ -69,6 +78,9 @@ class Car(models.Model):
 
     available_to_book = models.BooleanField(default=False)
 
+    class Meta:
+        ordering = ['id']
+
     def __str__(self):
         return self.name
 
@@ -76,6 +88,9 @@ class Car(models.Model):
 class CarImage(models.Model):
     car = models.ForeignKey(Car, on_delete=models.CASCADE, related_name="images")
     image = models.ImageField(upload_to=car_image_upload_path)
+
+    class Meta:
+        ordering = ['id']
 
     def __str__(self):
         return f"Image for {self.car.name}"
@@ -93,6 +108,7 @@ class Review(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['user', 'car'], name='user_review')
         ]
+        ordering = ['id']
 
     def __str__(self):
         return f"{self.user.username} - {self.car.name} ({self.rate})"

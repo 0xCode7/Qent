@@ -17,6 +17,8 @@ class Location(models.Model):
     lat = models.FloatField()
     lng = models.FloatField()
 
+    class Meta:
+        ordering = ['id']
 
     def __str__(self):
         return self.name

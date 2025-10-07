@@ -20,64 +20,23 @@ def haversine(lat1, lng1, lat2, lng2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
+def optimized_car_queryset():
+    return (
+        Car.objects
+        .select_related("brand", "color", "location")
+        .prefetch_related("car_features", "images", "reviews")
+    )
 
 # List all cars
 class CarListView(generics.ListAPIView):
-    queryset = Car.objects.all()
     serializer_class = CarSerializer
+    queryset = optimized_car_queryset()
 
 
 # Retrieve car details (with reviews)
 class CarDetailView(generics.RetrieveAPIView):
-    queryset = Car.objects.all()
+    queryset = optimized_car_queryset()
     serializer_class = CarSerializer
-
-
-# Get all reviews
-class GetAllReviewsView(generics.ListAPIView):
-    serializer_class = ReviewSerializer
-
-    def get_queryset(self):
-        car_id = self.kwargs.get('car_id')
-        return Review.objects.filter(car_id=car_id).select_related("user__profile")
-
-
-# Add a review
-class ReviewCreateView(generics.CreateAPIView):
-    serializer_class = ReviewSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
-
-    def perform_create(self, serializer):
-        car_id = self.kwargs.get("car_id")
-        serializer.save(user=self.request.user, car_id=car_id)
-
-    def create(self, request, *args, **kwargs):
-
-        user = request.user
-        car_id = self.kwargs.get('car_id')
-        car_obj = get_object_or_404(Car, id=car_id)
-
-        if Review.objects.filter(user=user, car=car_obj).exists():
-            raise ValidationError({"message":"You have already reviewed this car."})
-
-        response = super().create(request, *args, **kwargs)
-        return Response(
-            {
-                "message": "Review added successfully",
-                "review": response.data
-            },
-            status=status.HTTP_201_CREATED
-        )
-
-
-class BrandListView(generics.ListAPIView):
-    queryset = Brand.objects.all()
-    serializer_class = BrandSerializer
-
-
-class BrandDetailsView(generics.RetrieveAPIView):
-    queryset = Brand.objects.all()
-    serializer_class = BrandSerializer
 
 
 class BestCarsListView(generics.ListAPIView):
@@ -97,7 +56,7 @@ class NearestCarListView(generics.ListAPIView):
         user_lat = float(user.profile.location.lat)
         user_lng = float(user.profile.location.lng)
 
-        cars = Car.objects.all()
+        cars = optimized_car_queryset()
         # Create a list of tuples (car, distance)
         car_with_distance = [
             (car, haversine(user_lat, user_lng, car.location.lat, car.location.lng))
@@ -116,7 +75,7 @@ class CarSearchView(generics.ListAPIView):
     serializer_class = CarSerializer
 
     def get_queryset(self):
-        queryset = Car.objects.all()
+        queryset = optimized_car_queryset()
         params = self.request.query_params
 
         # ----- Keyword search -----
@@ -194,6 +153,52 @@ class CarSearchView(generics.ListAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+# Get all reviews
+class GetAllReviewsView(generics.ListAPIView):
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        car_id = self.kwargs.get('car_id')
+        return Review.objects.filter(car_id=car_id).select_related("user__profile")
+
+
+# Add a review
+class ReviewCreateView(generics.CreateAPIView):
+    serializer_class = ReviewSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        car_id = self.kwargs.get("car_id")
+        serializer.save(user=self.request.user, car_id=car_id)
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        car_id = self.kwargs.get('car_id')
+        car_obj = get_object_or_404(Car, id=car_id)
+
+        if Review.objects.filter(user=user, car=car_obj).exists():
+            raise ValidationError({"message": "You have already reviewed this car."})
+
+        response = super().create(request, *args, **kwargs)
+        return Response(
+            {
+                "message": "Review added successfully",
+                "review": response.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+
+
+class BrandListView(generics.ListAPIView):
+    queryset = Brand.objects.all()
+    serializer_class = BrandSerializer
+
+
+class BrandDetailsView(generics.RetrieveAPIView):
+    queryset = Brand.objects.all()
+    serializer_class = BrandSerializer
+
+
 class APISettings(APIView):
     def get(self, request):
         def get_price_range():
@@ -218,19 +223,14 @@ class APISettings(APIView):
                 {
                     "min": int(min_price + i * bucket_size),
                     "max": int(min_price + (i + 1) * bucket_size),
-                    "count": 0
+                    "count": Car.objects.filter(
+                        price__gte=min_price + i * bucket_size,
+                        price__lt = min_price + (i+1) * bucket_size
+                    ).count()
                 }
                 for i in range(num_buckets)
             ]
 
-            # 4. count cars into buckets
-            for car in Car.objects.only("price"):
-                if car.price is None:
-                    continue
-                idx = int((car.price - min_price) / bucket_size)
-                if idx == num_buckets:  # edge case for max price
-                    idx -= 1
-                buckets[idx]["count"] += 1
 
             # 5. return result
             return {
@@ -242,4 +242,5 @@ class APISettings(APIView):
         def get_colors():
             colors = Color.objects.all()
             return ColorSerializer(colors, many=True).data
+
         return Response({"price": get_price_range(), "colors": get_colors()})
