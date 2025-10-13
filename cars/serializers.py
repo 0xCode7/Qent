@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db.models import Avg, Count
-from authentication.serializers import LocationSerializer
+from authentication.serializers import LocationSerializer, UserSerializer
 from .models import Brand, Color, CarFeature, Car, Review, CarImage
 
 
@@ -62,7 +62,7 @@ class CarSerializer(serializers.ModelSerializer):
     class Meta:
         model = Car
         fields = [
-            "id", "name", "description", "first_image", "images", "car_type",
+            "id", "name", "description", "owner", "first_image", "images", "car_type",
             "brand", "color", "car_features", "seating_capacity",
             "location", "average_rate",
             "is_for_rent", "daily_rent", "weekly_rent", "monthly_rent", "yearly_rent",
@@ -100,3 +100,8 @@ class CarSerializer(serializers.ModelSerializer):
     def get_reviews(self, obj):
         reviews = obj.reviews.all()[:3]
         return ReviewSerializer(reviews, many=True, context=self.context).data
+
+
+class CarDetailsSerializer(CarSerializer):
+    owner = UserSerializer(read_only=True)
+

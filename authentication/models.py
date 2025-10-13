@@ -7,10 +7,12 @@ from django.contrib.auth.models import AbstractUser
 def default_location():
     return {"lat": 30.0444, "lng": 31.2357}
 
+
 def user_profile_image_path(instance, filename):
     ext = filename.split('.')[-1]
     unique_name = f"{instance.user.username}-{uuid.uuid4().hex}.{ext}"
     return os.path.join("profile", instance.user.username, unique_name)
+
 
 class Location(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -31,6 +33,7 @@ class User(AbstractUser):
         if not self.username:
             self.username = f"Qent-{uuid.uuid4().hex[:6]}"
         super().save(*args, **kwargs)
+
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')

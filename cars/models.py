@@ -55,6 +55,8 @@ class Car(models.Model):
         ('regular', 'Regular'),
         ('luxury', 'Luxury'),
     ]
+
+    owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name='cars', default='1')
     car_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default='regular')
 
     brand = models.ForeignKey(Brand, on_delete=models.CASCADE, related_name="cars")

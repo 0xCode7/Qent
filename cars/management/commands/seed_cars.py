@@ -26,8 +26,6 @@ class Command(BaseCommand):
         Brand.objects.all().delete()
         Color.objects.all().delete()
         CarFeature.objects.all().delete()
-        Location.objects.all().delete()
-        User.objects.all().delete()
 
     def reset_sequences(self):
         """Reset sequences (Postgres version)"""
@@ -191,19 +189,21 @@ class Command(BaseCommand):
                 )
 
         users = list(User.objects.all())
+
         for car in Car.objects.all():
-            for _ in range(random.randint(1, 3)):
+
+            review_users = random.sample(users, k=random.randint(1, min(3, len(users))))
+
+            for user in review_users:
                 Review.objects.create(
-                    user=random.choice(users),
+                    user=user,
                     car=car,
-                    review=random.choice(
-                        [
-                            "Great experience!",
-                            "Very clean and comfortable.",
-                            "Would rent again.",
-                            "Smooth ride and reliable.",
-                        ]
-                    ),
+                    review=random.choice([
+                        "Great experience!",
+                        "Very clean and comfortable.",
+                        "Would rent again.",
+                        "Smooth ride and reliable.",
+                    ]),
                     rate=random.randint(3, 5),
                 )
 

@@ -8,7 +8,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Car, Review, Brand, Color
-from .serializers import CarSerializer, ReviewSerializer, BrandSerializer, ColorSerializer
+from .serializers import CarSerializer, ReviewSerializer, BrandSerializer, ColorSerializer, CarDetailsSerializer
 
 
 def haversine(lat1, lng1, lat2, lng2):
@@ -20,12 +20,14 @@ def haversine(lat1, lng1, lat2, lng2):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return R * c
 
+
 def optimized_car_queryset():
     return (
         Car.objects
         .select_related("brand", "color", "location")
         .prefetch_related("car_features", "images", "reviews")
     )
+
 
 # List all cars
 class CarListView(generics.ListAPIView):
@@ -36,7 +38,7 @@ class CarListView(generics.ListAPIView):
 # Retrieve car details (with reviews)
 class CarDetailView(generics.RetrieveAPIView):
     queryset = optimized_car_queryset()
-    serializer_class = CarSerializer
+    serializer_class = CarDetailsSerializer
 
 
 class BestCarsListView(generics.ListAPIView):
@@ -88,10 +90,16 @@ class CarSearchView(generics.ListAPIView):
                 Q(color__name__icontains=search)
             )
 
+        # ----- Brand Id -----
+        brand_id = params.get('brand_id')
+        if brand_id:
+            queryset = queryset.filter(brand_id=brand_id)
+
         # ----- Car Type -----
         car_type = params.get('car_type')
         if car_type:
             queryset = queryset.filter(car_type__iexact=car_type)
+
 
         # ----- Sale Type -> Rent / Pay / Both -----
         sale_type = params.get('type')
@@ -148,6 +156,11 @@ class CarSearchView(generics.ListAPIView):
         queryset = self.get_queryset()
         if not queryset.exists():
             return Response({"message": "No results found"}, status=status.HTTP_200_OK)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -225,12 +238,11 @@ class APISettings(APIView):
                     "max": int(min_price + (i + 1) * bucket_size),
                     "count": Car.objects.filter(
                         price__gte=min_price + i * bucket_size,
-                        price__lt = min_price + (i+1) * bucket_size
+                        price__lt=min_price + (i + 1) * bucket_size
                     ).count()
                 }
                 for i in range(num_buckets)
             ]
-
 
             # 5. return result
             return {
