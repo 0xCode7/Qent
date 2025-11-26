@@ -6,50 +6,54 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+
+  build:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'   # ← إصدار Python اللي Azure بيدعمه
+      - name: Install dependencies
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install -r requirements.txt
+          echo "Build completed!"
 
-    - name: Install dependencies
-      run: |
-        python -m venv venv
-        source venv/bin/activate
-        pip install --upgrade pip
-        pip install -r requirements.txt
-        python manage.py collectstatic --noinput
-        echo "Build done ✔"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qent
+          path: |
+            .
+            !venv/
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: qent
-        path: |
-          .
-          !venv/
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
 
-    - name: Login to Azure
-      uses: azure/login@v2
-      with:
-        client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4BE6E820A9FA4181862B25AF6D356A47 }}
-        tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_A5AEE583BC164494AEC70C664BD565D2 }}
-        subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_82C83C02D665435A9AF5ACDCFC6AF939 }}
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: qent
 
-    - name: Download artifact
-      uses: actions/download-artifact@v4
-      with:
-        name: qent
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_4BE6E820A9FA4181862B25AF6D356A47 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_A5AEE583BC164494AEC70C664BD565D2 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_82C83C02D665435A9AF5ACDCFC6AF939 }}
 
-    - name: Deploy to Azure Web App
-      uses: azure/webapps-deploy@v3
-      with:
-        app-name: 'qent'
-        slot-name: 'Production'
+      - name: Deploy to Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: "qent"
+          slot-name: "Production"
+          package: .
