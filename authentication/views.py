@@ -1,9 +1,6 @@
 import os, json
 import random
 from datetime import timedelta
-
-from rest_framework.exceptions import ValidationError
-
 from .serializers import RegisterSerializer, CountrySerializer, PhoneVerificationSerializer, \
     PhoneVerificationRequestSerializer, UserSerializer, LoginSerializer, ForgotPasswordSerializer, \
     ResetPasswordSerializer, LocationSerializer, ProfileSerializer
@@ -14,12 +11,14 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
-from django.contrib.auth import get_user_model
-from django.conf import settings
-from .models import Location
 from rest_framework.exceptions import ValidationError
+from django.contrib.auth import get_user_model
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.conf import settings
+from django.utils.timezone import now
 
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from .models import Location
 
 User = get_user_model()
 
@@ -27,6 +26,34 @@ User = get_user_model()
 COUNTRIES_FILE = os.path.join(settings.BASE_DIR, 'authentication/data/countries.json')
 with open(COUNTRIES_FILE, 'r', encoding='utf-8') as f:
     COUNTRIES = json.load(f)
+
+
+
+def send_reset_code_email(user, code):
+    subject = "Qent – Reset Your Password"
+    from_email = settings.DEFAULT_FROM_EMAIL
+    to = [user.email]
+
+    text_content = f"This is your reset password code: {code}"
+
+    html_content = render_to_string(
+        "emails/reset_password.html",
+        {
+            "name": user.profile.full_name.split()[0] or user.username,
+            "code": code,
+            "expiry_minutes": 10,
+            "year": now().year,
+        }
+    )
+
+    email = EmailMultiAlternatives(
+        subject,
+        text_content,
+        from_email,
+        to
+    )
+    email.attach_alternative(html_content, "text/html")
+    email.send()
 
 
 class CountriesView(ListAPIView):
@@ -137,6 +164,9 @@ class ForgotPasswordView(APIView):
         user.profile.reset_token = str(token)
 
         user.save()
+
+        # Send Email
+        send_reset_code_email(user, code)
         return Response(
             {
                 "message": "Code sent to your email successfully",
@@ -184,11 +214,10 @@ class PhoneVerifyRequestView(APIView):
         user.profile.save()
 
         if user.profile.phone != phone:
-            raise ValidationError({"message":"There is no account with the given number"})
-
+            raise ValidationError({"message": "There is no account with the given number"})
 
         return Response(
-            {"message": "Verification Code Sent", "code":reset_code, 'verify_token': str(token)},
+            {"message": "Verification Code Sent", "code": reset_code, 'verify_token': str(token)},
             status=status.HTTP_200_OK
         )
 
@@ -208,7 +237,7 @@ class PhoneVerifyConfirmView(APIView):
 
         user = User.objects.get(id=token['user_id'])
 
-        reset_code= data['code']
+        reset_code = data['code']
 
         if user.profile.reset_code != reset_code:
             raise ValidationError({"message": "Invalid code"})
