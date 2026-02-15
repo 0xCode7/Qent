@@ -5,6 +5,6 @@ from .models import User, Profile
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
-        Profile.objects.create(user=instance, full_name=instance.username or "")
+        Profile.objects.create(user=instance, full_name=instance.username or "", balance=5000)
     else:
         instance.profile.save()
