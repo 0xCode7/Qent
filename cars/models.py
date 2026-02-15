@@ -1,3 +1,5 @@
+from xxlimited_35 import Null
+
 from django.core.validators import MinValueValidator, MaxValueValidator
 from authentication.models import User, Location
 from django.db import models
@@ -79,6 +81,10 @@ class Car(models.Model):
     price = models.DecimalField(null=True, blank=True, max_digits=10, decimal_places=2)
 
     available_to_book = models.BooleanField(default=False)
+
+    is_subscribed = models.BooleanField(default=False)
+    subscription_start = models.DateField(blank=True, null=True)
+    subscription_end = models.DateField(blank=True, null=True)
 
     class Meta:
         ordering = ['id']

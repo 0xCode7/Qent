@@ -30,6 +30,7 @@ class UserSerializer(serializers.ModelSerializer):
     phone = serializers.SerializerMethodField()
     phone_is_verified = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
+    balance = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -40,7 +41,8 @@ class UserSerializer(serializers.ModelSerializer):
             'phone',
             'phone_is_verified',
             'country',
-            'location'
+            'location',
+            'balance'
         ]
         read_only_fields = ['id', 'email']
 
@@ -69,6 +71,9 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, "profile") and obj.profile.location:
             return LocationSerializer(obj.profile.location).data
         return None
+
+    def get_balance(self, obj):
+        return obj.profile.balance if hasattr(obj, "profile") else None
 
 
 class ProfileSerializer(serializers.ModelSerializer):
@@ -147,10 +152,22 @@ class RegisterSerializer(serializers.ModelSerializer):
     country_id = serializers.IntegerField(write_only=True)
     location_id = serializers.IntegerField(write_only=True)
     available_to_create_car = serializers.BooleanField(write_only=True, default=False)
+    national_id = serializers.IntegerField(required=False)
+    date_of_birth = serializers.DateField(required=False)
 
     class Meta:
         model = User
-        fields = ['full_name', 'email', 'phone', 'password', 'country_id', 'location_id', 'available_to_create_car']
+        fields = [
+            'full_name',
+            'email',
+            'phone',
+            'password',
+            'country_id',
+            'location_id',
+            'available_to_create_car',
+            'national_id',
+            'date_of_birth'
+        ]
 
     def validate_country_id(self, value):
         """Ensure the country ID exists and return abbreviation."""
@@ -164,6 +181,24 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Email already exists")
         return value
 
+    def validate(self, attrs):
+        """
+        Make national_id and date_of_birth required
+        if available_to_create_car is True
+        """
+        errors = {}
+
+        if attrs.get("available_to_create_car"):
+            if not attrs.get("national_id"):
+                errors["national_id"] = "This field is required when available_to_create_car is true."
+            if not attrs.get("date_of_birth"):
+                errors["date_of_birth"] = "This field is required when available_to_create_car is true."
+
+        if errors:
+            raise serializers.ValidationError(errors)
+
+        return attrs
+
     def create(self, validated_data):
         password = validated_data.pop('password')
         country_abbr = validated_data.pop("country_id")  # store abbreviation
@@ -171,6 +206,8 @@ class RegisterSerializer(serializers.ModelSerializer):
         full_name = validated_data.pop("full_name")
         phone = validated_data.pop("phone")
         available_to_create_car = validated_data.pop("available_to_create_car", False)
+        national_id = validated_data.pop("national_id", None)
+        date_of_birth = validated_data.pop("date_of_birth", None)
 
         # create user
         user = User(email=validated_data["email"])
@@ -184,6 +221,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         profile.country = country_abbr
         profile.location_id = location_id
         profile.available_to_create_car = available_to_create_car
+
+        if available_to_create_car:
+            profile.national_id = national_id
+            profile.date_of_birth = date_of_birth
+
         profile.save()
 
         return user

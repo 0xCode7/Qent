@@ -51,3 +51,7 @@ class Profile(models.Model):
     reset_token = models.CharField(max_length=255, null=True, blank=True)
     location = models.ForeignKey(Location, on_delete=models.PROTECT, default=1)
     available_to_create_car = models.BooleanField(default=False)
+
+    balance = models.FloatField(default=5000)
+    national_id = models.IntegerField(null=True, blank=True)
+    date_of_birth = models.DateField(null=True, blank=True)
