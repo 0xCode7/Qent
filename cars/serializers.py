@@ -1,7 +1,11 @@
+from datetime import timedelta
+from django.utils import timezone
+from django.db import transaction
+from django.db.models import Avg
 from rest_framework import serializers
-from django.db.models import Avg, Count
-from authentication.serializers import LocationSerializer, UserSerializer
 from .models import Brand, Color, CarFeature, Car, Review, CarImage
+from authentication.serializers import LocationSerializer, UserSerializer
+
 
 
 class BrandSerializer(serializers.ModelSerializer):
@@ -101,7 +105,49 @@ class CarSerializer(serializers.ModelSerializer):
         reviews = obj.reviews.all()[:3]
         return ReviewSerializer(reviews, many=True, context=self.context).data
 
+    def validate(self, attrs):
+        car = self.instance
+        if attrs.get('is_for_rent') is True:
+            today = timezone.now().date()
 
+            if not car.subscription_end or car.subscription_end < today:
+                raise serializers.ValidationError({"message":
+                    "Car is not available for rent."
+                })
+
+        return attrs
 class CarDetailsSerializer(CarSerializer):
     owner = UserSerializer(read_only=True)
 
+
+class CarSubscriptionSerializer(serializers.Serializer):
+    @transaction.atomic
+    def save(self, **kwargs):
+        request = self.context['request']
+        car = self.context['car']
+        profile = request.user.profile
+
+        # Should be the owner
+        if car.owner != request.user:
+            raise serializers.ValidationError({"message": "You should be the owner of this car."})
+
+        # Already Subscribed?
+        today = timezone.now().date()
+        if car.subscription_end and car.subscription_start >= today:
+            raise serializers.ValidationError({"message":"Car already has active subscription."})
+
+        # Check for the balance
+        if profile.balance < 10:
+            raise serializers.ValidationError({"message": "Insufficient balance."})
+
+        profile.balance -= 10
+        profile.save()
+
+
+        #Subscribe
+        car.is_subscribed = True
+        car.subscription_start = today
+        car.subscription_end = today + timedelta(days=30)
+        car.save()
+
+        return car

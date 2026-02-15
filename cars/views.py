@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .models import Car, Review, Brand, Color
-from .serializers import CarSerializer, ReviewSerializer, BrandSerializer, ColorSerializer, CarDetailsSerializer
+from .serializers import CarSerializer, ReviewSerializer, BrandSerializer, ColorSerializer, CarDetailsSerializer, \
+    CarSubscriptionSerializer
 
 
 def haversine(lat1, lng1, lat2, lng2):
@@ -165,6 +166,24 @@ class CarSearchView(generics.ListAPIView):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+class SubscribeCarView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        car = get_object_or_404(Car, pk=pk)
+
+        serializer = CarSubscriptionSerializer(
+            data={},
+            context = {'request': request, 'car': car}
+        )
+
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(
+            {"message": "Car subscribed successfully"},
+            status=status.HTTP_200_OK
+        )
 
 # Get all reviews
 class GetAllReviewsView(generics.ListAPIView):
@@ -255,4 +274,4 @@ class APISettings(APIView):
             colors = Color.objects.all()
             return ColorSerializer(colors, many=True).data
 
-        return Response({"price": get_price_range(), "colors": get_colors()})
+        return Response({"price": get_price_range(), "colors": get_colors(), "subscription_fees": "10$"})

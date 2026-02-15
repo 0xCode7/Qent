@@ -33,9 +33,16 @@ def custom_exception_handler(exc, context):
             else:
                 errors = response.data
 
-        response.data = {
-            "message": message,
-            "errors": errors
-        }
+        if len(errors) > 1:
+            response.data = {
+                "message": message,
+                "errors": errors
+            }
+        else:
+            response.data = {
+                "message": message,
+                "error": errors
+            }
+
 
     return response
