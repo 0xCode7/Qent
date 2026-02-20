@@ -31,6 +31,8 @@ class UserSerializer(serializers.ModelSerializer):
     phone_is_verified = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
     balance = serializers.SerializerMethodField()
+    national_id=serializers.SerializerMethodField()
+    date_of_birth=serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -42,7 +44,9 @@ class UserSerializer(serializers.ModelSerializer):
             'phone_is_verified',
             'country',
             'location',
-            'balance'
+            'balance',
+            'national_id',
+            'date_of_birth'
         ]
         read_only_fields = ['id', 'email']
 
@@ -75,6 +79,10 @@ class UserSerializer(serializers.ModelSerializer):
     def get_balance(self, obj):
         return obj.profile.balance if hasattr(obj, "profile") else None
 
+    def get_national_id(self, obj):
+        return obj.profile.national_id if hasattr(obj, "profile") else None
+    def get_date_of_birth(self, obj):
+        return obj.profile.date_of_birth if hasattr(obj, "profile") else None
 
 class ProfileSerializer(serializers.ModelSerializer):
     location = LocationSerializer(read_only=True)  # for output
@@ -100,6 +108,8 @@ class ProfileSerializer(serializers.ModelSerializer):
             'country',
             "country_id",
             "available_to_create_car",
+            'national_id',
+            'date_of_birth'
         ]
         read_only_fields = ["phone_is_verified"]
 
