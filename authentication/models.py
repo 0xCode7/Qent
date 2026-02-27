@@ -41,7 +41,7 @@ class Profile(models.Model):
         upload_to=user_profile_image_path,
         blank=True,
         null=True,
-        default='default/profile/profile.jpg'
+        default='default/profile/profile.svg'
     )
     full_name = models.CharField(max_length=255, null=False, blank=False)
     country = models.CharField(max_length=3, default='PS')
